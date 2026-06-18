@@ -3,223 +3,627 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Message of the Day</title>
+  <title>motd — Message of the Day</title>
+  <meta name="description" content="A warm, funny message for your terminal, SSH session, or browser. Fail-safe, integrable everywhere, open source." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0f0f13;
-      --card: #1a1a24;
-      --border: #2e2e42;
-      --accent: #7c6af7;
+      --bg:      #0d0d12;
+      --surface: #16161e;
+      --card:    #1c1c28;
+      --border:  rgba(255,255,255,.09);
+      --border2: rgba(255,255,255,.16);
+      --accent:  #7c6af7;
       --accent2: #f7c26a;
-      --text: #e8e8f0;
-      --muted: #8888a8;
-      --radius: 16px;
+      --green:   #5dca87;
+      --text:    #e8e8f2;
+      --muted:   #8888aa;
+      --r:       14px;
     }
 
     body {
       background: var(--bg);
       color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
     }
 
+    /* ── nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 10;
+      background: rgba(13,13,18,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .85rem 2rem;
+    }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; letter-spacing: -.02em; color: var(--text); text-decoration: none; }
+    .nav-logo span { color: var(--accent); }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-size: .9rem; transition: color .2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-gh {
+      background: var(--accent);
+      color: #fff !important;
+      padding: .4rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: .85rem !important;
+      transition: opacity .2s !important;
+    }
+    .nav-gh:hover { opacity: .85; }
+
+    /* ── hero ── */
+    .hero {
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      position: relative;
+    }
+    .hero-badge {
+      display: inline-block;
+      background: rgba(124,106,247,.18);
+      color: var(--accent);
+      border: 1px solid rgba(124,106,247,.35);
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: .3rem .9rem;
+      margin-bottom: 1.5rem;
+    }
     h1 {
-      font-size: 1rem;
-      font-weight: 500;
+      font-size: clamp(2.2rem, 6vw, 3.8rem);
+      font-weight: 800;
+      letter-spacing: -.03em;
+      line-height: 1.1;
+      margin-bottom: 1.25rem;
+    }
+    h1 em { color: var(--accent); font-style: normal; }
+    .hero-sub {
       color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 520px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: .75rem; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: .45rem;
+      padding: .65rem 1.4rem;
+      border-radius: 9px;
+      font-size: .92rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: opacity .2s, transform .15s;
+    }
+    .btn:hover { opacity: .85; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border2); }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── live demo ── */
+    .demo-section {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 1.5rem 5rem;
+    }
+    .section-label {
+      text-align: center;
+      font-size: .75rem;
+      font-weight: 700;
       letter-spacing: .12em;
       text-transform: uppercase;
+      color: var(--muted);
       margin-bottom: 2rem;
     }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      max-width: 640px;
-      width: 100%;
-      padding: 2.5rem 2rem 2rem;
-      position: relative;
-      transition: opacity .3s, transform .3s;
+    .tag-row {
+      display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .tag-btn {
+      background: none;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: .35rem .85rem;
+      font-size: .8rem;
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .tag-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .tag-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(124,106,247,.12);
     }
 
-    .card.fade { opacity: 0; transform: translateY(8px); }
+    .message-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 2.5rem 2rem 2rem;
+      position: relative;
+      min-height: 160px;
+      transition: opacity .28s, transform .28s;
+    }
+    .message-card.fade { opacity: 0; transform: translateY(6px); }
 
-    .tag-pill {
+    .msg-tag-badge {
       position: absolute;
-      top: -12px;
-      left: 1.5rem;
+      top: -11px; left: 1.5rem;
       background: var(--accent);
       color: #fff;
-      font-size: .7rem;
+      font-size: .68rem;
       font-weight: 700;
-      letter-spacing: .1em;
+      letter-spacing: .09em;
       text-transform: uppercase;
-      padding: .25rem .75rem;
+      padding: .22rem .7rem;
       border-radius: 999px;
     }
 
-    blockquote {
-      font-size: 1.35rem;
+    .msg-text {
+      font-size: 1.25rem;
       line-height: 1.65;
       font-weight: 400;
       color: var(--text);
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
     }
+    .msg-text::before { content: '\201C'; color: var(--accent); font-size: 1.8rem; line-height: 0; vertical-align: -.35rem; margin-right: .15rem; }
+    .msg-text::after  { content: '\201D'; color: var(--accent); font-size: 1.8rem; line-height: 0; vertical-align: -.35rem; margin-left:  .15rem; }
 
-    blockquote::before { content: '\201C'; color: var(--accent); font-size: 2rem; line-height: 0; vertical-align: -.4rem; margin-right: .2rem; }
-    blockquote::after  { content: '\201D'; color: var(--accent); font-size: 2rem; line-height: 0; vertical-align: -.4rem; margin-left: .2rem; }
+    .msg-author { color: var(--muted); font-size: .88rem; }
+    .msg-author::before { content: '— '; }
 
-    .author {
-      color: var(--muted);
-      font-size: .9rem;
+    .card-actions {
+      display: flex; gap: .6rem; margin-top: 1.5rem; flex-wrap: wrap;
     }
-
-    .author::before { content: '— '; }
-
-    .controls {
-      margin-top: 2rem;
-      display: flex;
-      gap: .75rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    button {
+    .card-btn {
       background: none;
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 8px;
-      padding: .5rem 1.25rem;
-      font-size: .85rem;
-      cursor: pointer;
-      transition: border-color .2s, color .2s;
-    }
-
-    button:hover { border-color: var(--accent); color: var(--accent); }
-    button.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
-
-    #next-btn {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-      font-weight: 600;
-    }
-    #next-btn:hover { background: color-mix(in srgb, var(--accent) 80%, #fff); }
-
-    .copy-hint {
-      margin-top: 2rem;
-      font-size: .75rem;
+      border: 1px solid var(--border2);
       color: var(--muted);
+      border-radius: 8px;
+      padding: .4rem 1rem;
+      font-size: .82rem;
+      cursor: pointer;
+      transition: all .18s;
+      display: inline-flex; align-items: center; gap: .35rem;
+    }
+    .card-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .card-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .card-btn.primary:hover { opacity: .85; color: #fff; }
+    .copy-ok { color: var(--green) !important; border-color: var(--green) !important; }
+
+    /* ── terminal demo ── */
+    .terminal-section {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1.5rem 6rem;
+    }
+    .section-title {
       text-align: center;
+      font-size: 1.9rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+      margin-bottom: .6rem;
+    }
+    .section-sub {
+      text-align: center;
+      color: var(--muted);
+      margin-bottom: 3rem;
+      font-size: .95rem;
     }
 
-    .copy-hint code {
+    .terminal {
+      background: #0a0a0f;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    .terminal-bar {
+      background: #111118;
+      border-bottom: 1px solid var(--border);
+      padding: .65rem 1rem;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .dot-red  { background: #ff5f57; }
+    .dot-yel  { background: #febc2e; }
+    .dot-grn  { background: #28c840; }
+    .terminal-title { margin-left: auto; margin-right: auto; color: var(--muted); font-size: .78rem; font-family: monospace; transform: translateX(-20px); }
+    .terminal-body { padding: 1.5rem 1.75rem; font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: .85rem; line-height: 1.7; white-space: pre; overflow-x: auto; }
+    .t-prompt { color: var(--green); }
+    .t-cmd    { color: var(--text); }
+    .t-out    { color: var(--muted); }
+    .t-hl     { color: var(--accent2); }
+    .t-acc    { color: var(--accent); }
+
+    /* ── integration cards ── */
+    .integrations {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1.5rem 6rem;
+    }
+    .int-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .int-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: .2rem .5rem;
-      font-family: monospace;
+      border-radius: var(--r);
+      padding: 1.5rem;
+    }
+    .int-icon {
+      font-size: 1.5rem;
+      margin-bottom: .75rem;
+    }
+    .int-title {
+      font-weight: 700;
+      font-size: 1rem;
+      margin-bottom: .4rem;
+      color: var(--text);
+    }
+    .int-desc {
+      font-size: .83rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+    .code-block {
+      background: #0a0a0f;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .75rem 1rem;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: .78rem;
       color: var(--accent2);
+      white-space: pre;
+      overflow-x: auto;
+      position: relative;
+    }
+    .code-copy {
+      position: absolute;
+      top: .4rem; right: .4rem;
+      background: none;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      border-radius: 5px;
+      padding: .15rem .4rem;
+      font-size: .7rem;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .code-copy:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── stats strip ── */
+    .stats {
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      padding: 2.5rem 2rem;
+      display: flex; justify-content: center; gap: 4rem; flex-wrap: wrap;
+      margin-bottom: 0;
+    }
+    .stat { text-align: center; }
+    .stat-num { font-size: 2rem; font-weight: 800; letter-spacing: -.03em; color: var(--accent); }
+    .stat-label { font-size: .8rem; color: var(--muted); margin-top: .15rem; }
+
+    /* ── footer ── */
+    footer {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--muted);
+      font-size: .82rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+
+    /* ── utilities ── */
+    .fade-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border2), transparent);
+      margin: 0 2rem;
     }
 
-    #copied {
-      display: none;
-      color: #6fdb8e;
-      font-size: .8rem;
-      margin-top: .5rem;
-      text-align: center;
+    @media (max-width: 600px) {
+      nav { padding: .75rem 1rem; }
+      .nav-links { gap: .8rem; }
+      .hero { padding: 4rem 1.25rem 3rem; }
+      .stats { gap: 2rem; }
+      .terminal-body { font-size: .75rem; padding: 1rem; }
     }
   </style>
 </head>
 <body>
-  <h1>✨ Message of the Day</h1>
 
-  <div class="card" id="card">
-    <span class="tag-pill" id="tag">—</span>
-    <blockquote id="quote">Loading…</blockquote>
-    <div class="author" id="author"></div>
+<!-- nav -->
+<nav>
+  <a class="nav-logo" href="#"><span>$</span> motd</a>
+  <div class="nav-links">
+    <a href="#demo">Try it</a>
+    <a href="#integrate">Integrate</a>
+    <a href="https://github.com/Rechenmacher/motd" class="nav-gh" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</nav>
+
+<!-- hero -->
+<section class="hero">
+  <div class="hero-badge">Open source · Zero dependencies · Fail-safe</div>
+  <h1>A message that<br>makes your day <em>better</em></h1>
+  <p class="hero-sub">
+    Warm, funny, and wise messages for your terminal, SSH sessions, containers,
+    and browser — integrates like a tank. If it fails, nothing breaks.
+  </p>
+  <div class="hero-actions">
+    <a href="#demo" class="btn btn-primary">Try it live ↓</a>
+    <a href="https://github.com/Rechenmacher/motd" class="btn btn-outline" target="_blank" rel="noopener">View on GitHub</a>
+  </div>
+</section>
+
+<!-- live demo -->
+<section class="demo-section" id="demo">
+  <div class="section-label">Live demo — <span id="msg-count">—</span> messages loaded</div>
+
+  <div class="tag-row">
+    <button class="tag-btn active" onclick="filterTag('all')" id="btn-all">All</button>
+    <button class="tag-btn" onclick="filterTag('funny')"      id="btn-funny">Funny</button>
+    <button class="tag-btn" onclick="filterTag('tech')"       id="btn-tech">Tech</button>
+    <button class="tag-btn" onclick="filterTag('motivation')" id="btn-motivation">Motivation</button>
+    <button class="tag-btn" onclick="filterTag('kindness')"   id="btn-kindness">Kindness</button>
+    <button class="tag-btn" onclick="filterTag('wisdom')"     id="btn-wisdom">Wisdom</button>
+    <button class="tag-btn" onclick="filterTag('courage')"    id="btn-courage">Courage</button>
   </div>
 
-  <div class="controls">
-    <button id="next-btn" onclick="next()">Next message</button>
-    <button onclick="copyText()">Copy</button>
-    <button onclick="filterTag('all')"  class="active" id="btn-all">All</button>
-    <button onclick="filterTag('funny')"      id="btn-funny">😄 Funny</button>
-    <button onclick="filterTag('tech')"       id="btn-tech">💻 Tech</button>
-    <button onclick="filterTag('motivation')" id="btn-motivation">🚀 Motivation</button>
-    <button onclick="filterTag('kindness')"   id="btn-kindness">💛 Kindness</button>
-    <button onclick="filterTag('wisdom')"     id="btn-wisdom">🦉 Wisdom</button>
-    <button onclick="filterTag('courage')"    id="btn-courage">🦁 Courage</button>
+  <div class="message-card" id="card">
+    <span class="msg-tag-badge" id="tag">—</span>
+    <p class="msg-text" id="quote">Loading…</p>
+    <p class="msg-author" id="author"></p>
+    <div class="card-actions">
+      <button class="card-btn primary" onclick="next()">Next message</button>
+      <button class="card-btn" id="copy-btn" onclick="copyMsg()">Copy</button>
+    </div>
   </div>
+</section>
 
-  <div class="copy-hint">
-    Add to shell: <code>source /path/to/motd.sh</code>
+<!-- stats -->
+<div class="stats">
+  <div class="stat">
+    <div class="stat-num" id="s-count">40+</div>
+    <div class="stat-label">messages bundled</div>
   </div>
-  <div id="copied">Copied to clipboard!</div>
+  <div class="stat">
+    <div class="stat-num">7</div>
+    <div class="stat-label">tag categories</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">0</div>
+    <div class="stat-label">dependencies</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">∞</div>
+    <div class="stat-label">good vibes</div>
+  </div>
+</div>
 
-  <script>
-    let messages = [];
-    let filtered = [];
-    let idx = 0;
-    let currentTag = 'all';
+<!-- terminal demo -->
+<section class="terminal-section" style="padding-top: 5rem;" id="integrate">
+  <h2 class="section-title">Works everywhere</h2>
+  <p class="section-sub">One line in your shell config. That's it. Breaks nothing if it fails.</p>
 
-    async function load() {
+  <div class="terminal">
+    <div class="terminal-bar">
+      <div class="dot dot-red"></div>
+      <div class="dot dot-yel"></div>
+      <div class="dot dot-grn"></div>
+      <div class="terminal-title">bash — 80×24</div>
+    </div>
+    <div class="terminal-body">
+<span class="t-prompt">user@server:~$</span> <span class="t-cmd">ssh prod-01</span>
+<span class="t-out">Welcome to Ubuntu 22.04.3 LTS</span>
+
+<span class="t-acc">┌──────────────────────────────────────────────┐
+│           Message of the Day                 │
+│                                              │
+│  "The best way to predict the future is to  │
+│   invent it."                               │
+│                                    — Alan Kay│
+│                          tag: wisdom         │
+└──────────────────────────────────────────────┘</span>
+
+<span class="t-prompt">user@prod-01:~$</span> <span class="t-cmd">_</span>
+    </div>
+  </div>
+</section>
+
+<!-- integration cards -->
+<section class="integrations">
+  <div class="int-grid">
+
+    <div class="int-card">
+      <div class="int-icon">🐚</div>
+      <div class="int-title">Shell (.bashrc / .zshrc)</div>
+      <div class="int-desc">Shows a message every time you open a terminal. Silent on failure.</div>
+      <div class="code-block"><button class="code-copy" onclick="copyCode(this)">copy</button>source /path/to/motd/motd.sh \
+  2>/dev/null || true</div>
+    </div>
+
+    <div class="int-card">
+      <div class="int-icon">🔐</div>
+      <div class="int-title">SSH login (Ubuntu/Debian)</div>
+      <div class="int-desc">Runs automatically on every SSH login via update-motd.d.</div>
+      <div class="code-block"><button class="code-copy" onclick="copyCode(this)">copy</button>sudo cp integrate/99-motd \
+  /etc/update-motd.d/99-motd
+sudo chmod +x \
+  /etc/update-motd.d/99-motd</div>
+    </div>
+
+    <div class="int-card">
+      <div class="int-icon">🐳</div>
+      <div class="int-title">Docker / containers</div>
+      <div class="int-desc">Drops into /etc/profile.d/ — runs on every interactive shell.</div>
+      <div class="code-block"><button class="code-copy" onclick="copyCode(this)">copy</button>COPY integrate/docker.sh \
+  /etc/profile.d/motd.sh</div>
+    </div>
+
+    <div class="int-card">
+      <div class="int-icon">🌐</div>
+      <div class="int-title">Remote curl (anywhere)</div>
+      <div class="int-desc">Fetch from a self-hosted server. 2-second timeout, never blocks.</div>
+      <div class="code-block"><button class="code-copy" onclick="copyCode(this)">copy</button>curl -sf --max-time 2 \
+  https://your-server/motd \
+  2>/dev/null || true</div>
+    </div>
+
+    <div class="int-card">
+      <div class="int-icon">🐍</div>
+      <div class="int-title">Python package</div>
+      <div class="int-desc">Messages bundled locally — no network required.</div>
+      <div class="code-block"><button class="code-copy" onclick="copyCode(this)">copy</button>import motd
+msg = motd.random_message(
+  tag="funny"
+)
+print(motd.format_message(msg))</div>
+    </div>
+
+    <div class="int-card">
+      <div class="int-icon">📦</div>
+      <div class="int-title">npm package</div>
+      <div class="int-desc">Same idea, for Node.js projects.</div>
+      <div class="code-block"><button class="code-copy" onclick="copyCode(this)">copy</button>const { randomMessage,
+        formatMessage } = require(
+  '@rechenmacher/motd'
+);
+console.log(
+  formatMessage(randomMessage())
+);</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- fail-safe section -->
+<div class="fade-divider"></div>
+<section style="max-width: 680px; margin: 0 auto; padding: 5rem 1.5rem 6rem; text-align: center;">
+  <h2 class="section-title">Built to never break anything</h2>
+  <p class="section-sub" style="max-width: 480px; margin: 0 auto 3rem;">
+    Every integration path is wrapped in error handling.
+    Missing file, unreachable server, bad JSON — all handled silently.
+    Your shell will always open. Your SSH will always connect.
+  </p>
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .75rem; text-align: left;">
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem;">
+      <div style="color: var(--green); font-weight: 700; font-size: .85rem; margin-bottom: .3rem;">✓ No jq installed</div>
+      <div style="color: var(--muted); font-size: .8rem;">Falls back to a hardcoded message</div>
+    </div>
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem;">
+      <div style="color: var(--green); font-weight: 700; font-size: .85rem; margin-bottom: .3rem;">✓ Server unreachable</div>
+      <div style="color: var(--muted); font-size: .8rem;">2 s timeout, exits cleanly</div>
+    </div>
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem;">
+      <div style="color: var(--green); font-weight: 700; font-size: .85rem; margin-bottom: .3rem;">✓ Missing messages.json</div>
+      <div style="color: var(--muted); font-size: .8rem;">Silent exit, return 0</div>
+    </div>
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem;">
+      <div style="color: var(--green); font-weight: 700; font-size: .85rem; margin-bottom: .3rem;">✓ Malformed JSON</div>
+      <div style="color: var(--muted); font-size: .8rem;">Silent exit, return 0</div>
+    </div>
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem;">
+      <div style="color: var(--green); font-weight: 700; font-size: .85rem; margin-bottom: .3rem;">✓ Server always responds</div>
+      <div style="color: var(--muted); font-size: .8rem;">Built-in fallback, never 500s</div>
+    </div>
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem;">
+      <div style="color: var(--green); font-weight: 700; font-size: .85rem; margin-bottom: .3rem;">✓ SSH 99-motd script</div>
+      <div style="color: var(--muted); font-size: .8rem;">set +e · exit 0 guaranteed</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>
+    <a href="https://github.com/Rechenmacher/motd" target="_blank" rel="noopener">github.com/Rechenmacher/motd</a>
+    &nbsp;·&nbsp; Apache 2.0
+    &nbsp;·&nbsp; built with ☕ and good intentions
+  </p>
+</footer>
+
+<script>
+  let messages = [], filtered = [], idx = 0, currentTag = 'all';
+
+  async function load() {
+    try {
       const res = await fetch('messages.json');
       const data = await res.json();
-      messages = data.messages;
-      applyFilter();
-      show();
+      messages = data.messages || [];
+    } catch(e) {
+      messages = [{
+        text: "Something went wrong loading messages, but that's okay. You're doing great.",
+        author: "The Server",
+        tag: "kindness"
+      }];
     }
+    document.getElementById('msg-count').textContent = messages.length;
+    document.getElementById('s-count').textContent = messages.length + '+';
+    applyFilter();
+    show();
+  }
 
-    function applyFilter() {
-      filtered = currentTag === 'all'
-        ? [...messages]
-        : messages.filter(m => m.tag === currentTag);
-      idx = Math.floor(Math.random() * filtered.length);
-    }
+  function applyFilter() {
+    filtered = currentTag === 'all'
+      ? [...messages]
+      : messages.filter(m => m.tag === currentTag);
+    if (!filtered.length) filtered = [...messages];
+    idx = Math.floor(Math.random() * filtered.length);
+  }
 
-    function show() {
-      const card = document.getElementById('card');
-      card.classList.add('fade');
-      setTimeout(() => {
-        const m = filtered[idx % filtered.length];
-        document.getElementById('quote').textContent = m.text;
-        document.getElementById('author').textContent = m.author;
-        document.getElementById('tag').textContent = m.tag;
-        card.classList.remove('fade');
-      }, 280);
-    }
-
-    function next() {
-      idx = (idx + 1) % filtered.length;
-      show();
-    }
-
-    function filterTag(tag) {
-      currentTag = tag;
-      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
-      document.getElementById('btn-' + tag)?.classList.add('active');
-      applyFilter();
-      show();
-    }
-
-    function copyText() {
+  function show() {
+    const card = document.getElementById('card');
+    card.classList.add('fade');
+    setTimeout(() => {
       const m = filtered[idx % filtered.length];
-      navigator.clipboard.writeText(`"${m.text}" — ${m.author}`);
-      const hint = document.getElementById('copied');
-      hint.style.display = 'block';
-      setTimeout(() => hint.style.display = 'none', 2000);
-    }
+      document.getElementById('quote').textContent = m.text;
+      document.getElementById('author').textContent = m.author;
+      document.getElementById('tag').textContent = m.tag;
+      card.classList.remove('fade');
+    }, 260);
+  }
 
-    load();
-  </script>
+  function next() { idx = (idx + 1) % filtered.length; show(); }
+
+  function filterTag(tag) {
+    currentTag = tag;
+    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-' + tag)?.classList.add('active');
+    applyFilter(); show();
+  }
+
+  function copyMsg() {
+    const m = filtered[idx % filtered.length];
+    navigator.clipboard.writeText(`"${m.text}" — ${m.author}`).then(() => {
+      const btn = document.getElementById('copy-btn');
+      const prev = btn.textContent;
+      btn.textContent = 'Copied!';
+      btn.classList.add('copy-ok');
+      setTimeout(() => { btn.textContent = prev; btn.classList.remove('copy-ok'); }, 2000);
+    });
+  }
+
+  function copyCode(btn) {
+    const block = btn.parentElement;
+    const text = block.textContent.replace('copy', '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'done!';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1800);
+    });
+  }
+
+  load();
+</script>
 </body>
 </html>

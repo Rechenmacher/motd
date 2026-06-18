@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "motd"
+version = "0.1.0"
+description = "Message of the Day — a bundled library of warm, funny, and wise messages"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+keywords = ["motd", "message-of-the-day", "terminal", "fun"]
+
+[project.scripts]
+motd = "motd.__main__:main"
+
+[tool.setuptools.package-data]
+motd = ["messages.json"]

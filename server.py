@@ -27,6 +27,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+# optional: generator support (only active if ANTHROPIC_API_KEY is set)
+_GENERATOR_DIR = Path(__file__).parent / "generator"
+sys.path.insert(0, str(_GENERATOR_DIR))
+
 FALLBACK = {
     "text": "Keep going. You're doing better than you think.",
     "author": "Anonymous",
@@ -76,6 +80,20 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_today(self):
+        """Serve the AI-generated MOTD (requires ANTHROPIC_API_KEY)."""
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            msg = {**FALLBACK, "note": "Set ANTHROPIC_API_KEY to enable AI-generated messages"}
+            self._send(200, "application/json", json.dumps(msg))
+            return
+        try:
+            from today import get_today_motd  # generator/today.py
+            result = get_today_motd()
+            self._send(200, "application/json", json.dumps(result))
+        except Exception as e:
+            self._send(200, "application/json",
+                       json.dumps({**FALLBACK, "error": str(e)}))
+
     def do_GET(self):
         path = urlparse(self.path).path.rstrip("/") or "/"
 
@@ -93,6 +111,9 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/motd.json":
             msg = pick(self.messages, self._tag())
             self._send(200, "application/json", json.dumps(msg))
+
+        elif path == "/motd/today":
+            self._send_today()
 
         elif path == "/all.json":
             self._send(200, "application/json",
@@ -124,6 +145,10 @@ def main():
     print(f"  Serving on http://{args.host}:{args.port}")
     print(f"  Plain text:  http://{args.host}:{args.port}/motd")
     print(f"  JSON:        http://{args.host}:{args.port}/motd.json")
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        print(f"  AI today:    http://{args.host}:{args.port}/motd/today  (cached 12h)")
+    else:
+        print(f"  AI today:    set ANTHROPIC_API_KEY to enable /motd/today")
     print()
 
     try:

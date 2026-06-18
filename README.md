@@ -81,6 +81,7 @@ bash <(curl -sf --max-time 2 https://your-server/motd.sh) 2>/dev/null || true
 | `GET /motd.json` | Random message, JSON |
 | `GET /all.json` | Full message list |
 | `GET /motd?tag=funny` | Filtered by tag |
+| `GET /motd/today` | AI-generated message inspired by today's news (cached 12h) |
 
 ---
 
@@ -94,6 +95,48 @@ All via environment variables — no config file needed:
 | `MOTD_FILE` | `./messages.json` | Path to local messages file. |
 | `MOTD_TAG` | _(unset)_ | Pre-filter messages by tag. |
 | `MOTD_TIMEOUT` | `2` | Curl timeout in seconds for remote fetches. |
+
+---
+
+## AI-powered message of the day
+
+`generator/today.py` fetches today's top headlines from free RSS feeds (BBC World, HackerNews, Reuters — no API keys) and asks Claude to write a funny, warm MOTD inspired by what's actually happening right now. The result is cached for 12 hours.
+
+```bash
+# standalone — print today's AI-generated message
+pip install anthropic
+export ANTHROPIC_API_KEY=sk-...
+python3 generator/today.py
+
+# dry run — see what headlines were fetched, no Claude call
+python3 generator/today.py --dry-run
+
+# force regeneration, ignore cache
+python3 generator/today.py --force
+
+# via server — GET /motd/today (requires ANTHROPIC_API_KEY at server start)
+ANTHROPIC_API_KEY=sk-... python3 server.py
+curl http://localhost:8000/motd/today
+```
+
+Model: `claude-haiku-4-5` — fast and cheap (~$0.0003 per generation, which at 2× per day is under $0.25/year).
+
+---
+
+## Bulk-import messages
+
+`scripts/import.py` pulls from quotable.io (free, no key, ~150 quotes/page) and fortune-mod text files:
+
+```bash
+# import 10 pages ≈ 1500 quotes from quotable.io, merge with existing
+python3 scripts/import.py --quotable 10
+
+# import fortune-mod files (if installed)
+python3 scripts/import.py --fortune /usr/share/games/fortunes
+
+# both
+python3 scripts/import.py --quotable 5 --fortune /usr/share/games/fortunes
+```
 
 ---
 

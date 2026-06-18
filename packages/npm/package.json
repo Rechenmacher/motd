@@ -1,0 +1,21 @@
+{
+  "name": "@rechenmacher/motd",
+  "version": "0.1.0",
+  "description": "Message of the Day — a bundled library of warm, funny, and wise messages",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "bin": {
+    "motd": "./bin/motd.js"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "bin/",
+    "messages.json"
+  ],
+  "scripts": {
+    "sync": "cp ../../messages.json messages.json"
+  },
+  "keywords": ["motd", "message-of-the-day", "terminal", "fun"],
+  "license": "Apache-2.0"
+}
