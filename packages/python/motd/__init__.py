@@ -12,11 +12,12 @@ import random
 from pathlib import Path
 
 _DATA = Path(__file__).parent / "messages.json"
+_MESSAGES: list[dict] = json.loads(_DATA.read_text()).get("messages", [])
 
 
 def messages(tag: str | None = None) -> list[dict]:
     """Return all messages, optionally filtered by tag."""
-    msgs = json.loads(_DATA.read_text()).get("messages", [])
+    msgs = _MESSAGES
     if tag:
         msgs = [m for m in msgs if m.get("tag") == tag]
     return msgs

@@ -112,19 +112,21 @@ _motd_main() {
       return 0
     }
 
-    local count
+    local count rand_idx
     if [[ -n "$tag" ]]; then
       count=$(jq --arg t "$tag" '[.messages[] | select(.tag==$t)] | length' "$file" 2>/dev/null) || return 0
       (( count == 0 )) && return 0
+      rand_idx=$(( RANDOM % count ))
       local entry
-      entry=$(jq -r --arg t "$tag" \
-        '[.messages[] | select(.tag==$t)] | .[(now|floor) % length]' \
+      entry=$(jq -r --arg t "$tag" --argjson i "$rand_idx" \
+        '[.messages[] | select(.tag==$t)] | .[$i]' \
         "$file" 2>/dev/null) || return 0
     else
       count=$(jq '.messages | length' "$file" 2>/dev/null) || return 0
       (( count == 0 )) && return 0
+      rand_idx=$(( RANDOM % count ))
       local entry
-      entry=$(jq -r '.messages[(now|floor) % (.messages|length)]' \
+      entry=$(jq -r --argjson i "$rand_idx" '.messages[$i]' \
         "$file" 2>/dev/null) || return 0
     fi
 

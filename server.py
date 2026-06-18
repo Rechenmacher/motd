@@ -23,7 +23,7 @@ import json
 import os
 import random
 import sys
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingMixIn
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -81,18 +81,13 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _send_today(self):
-        """Serve the AI-generated MOTD (requires ANTHROPIC_API_KEY)."""
-        if not os.environ.get("ANTHROPIC_API_KEY"):
-            msg = {**FALLBACK, "note": "Set ANTHROPIC_API_KEY to enable AI-generated messages"}
-            self._send(200, "application/json", json.dumps(msg))
-            return
+        """Serve the AI-generated MOTD (falls back to curated if no AI key set)."""
         try:
             from today import get_today_motd  # generator/today.py
             result = get_today_motd()
             self._send(200, "application/json", json.dumps(result))
-        except Exception as e:
-            self._send(200, "application/json",
-                       json.dumps({**FALLBACK, "error": str(e)}))
+        except Exception:
+            self._send(200, "application/json", json.dumps(FALLBACK))
 
     def do_GET(self):
         path = urlparse(self.path).path.rstrip("/") or "/"
@@ -121,7 +116,11 @@ class Handler(BaseHTTPRequestHandler):
 
         else:
             # serve static files (css, js, etc.) from same directory
-            static = Path(__file__).parent / path.lstrip("/")
+            root = Path(__file__).parent.resolve()
+            static = (root / path.lstrip("/")).resolve()
+            if not str(static).startswith(str(root) + os.sep):
+                self._send(403, "text/plain", "forbidden")
+                return
             if static.is_file():
                 ct = "text/plain"
                 if path.endswith(".json"): ct = "application/json"
@@ -151,8 +150,11 @@ def main():
         print(f"  AI today:    set ANTHROPIC_API_KEY to enable /motd/today")
     print()
 
+    class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+        daemon_threads = True
+
     try:
-        HTTPServer((args.host, args.port), Handler).serve_forever()
+        ThreadingHTTPServer((args.host, args.port), Handler).serve_forever()
     except KeyboardInterrupt:
         print("\n  Stopped.")
 
