@@ -1,0 +1,28 @@
+#!/bin/sh
+# /etc/update-motd.d/99-motd — SSH server Message of the Day
+#
+# Install:
+#   sudo cp integrate/99-motd /etc/update-motd.d/99-motd
+#   sudo chmod +x /etc/update-motd.d/99-motd
+#
+# This script is run by PAM on SSH login (and sudo, su, etc.)
+# It MUST be fail-safe: any error must produce no output and exit 0.
+
+set -e 2>/dev/null; set +e  # ensure we never propagate errors
+
+# ── Option A: call the local motd.sh ─────────────────────────────────────────
+MOTD_SCRIPT="/opt/motd/motd.sh"
+if [ -f "$MOTD_SCRIPT" ]; then
+  bash "$MOTD_SCRIPT" 2>/dev/null || true
+  exit 0
+fi
+
+# ── Option B: fetch plain text from a remote server ───────────────────────────
+MOTD_URL="https://your-motd-server.example.com/motd"
+if command -v curl >/dev/null 2>&1; then
+  curl -sf --max-time 2 --connect-timeout 2 "$MOTD_URL" 2>/dev/null || true
+elif command -v wget >/dev/null 2>&1; then
+  wget -qO- --timeout=2 "$MOTD_URL" 2>/dev/null || true
+fi
+
+exit 0

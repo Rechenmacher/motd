@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Message of the Day</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f13;
+      --card: #1a1a24;
+      --border: #2e2e42;
+      --accent: #7c6af7;
+      --accent2: #f7c26a;
+      --text: #e8e8f0;
+      --muted: #8888a8;
+      --radius: 16px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      max-width: 640px;
+      width: 100%;
+      padding: 2.5rem 2rem 2rem;
+      position: relative;
+      transition: opacity .3s, transform .3s;
+    }
+
+    .card.fade { opacity: 0; transform: translateY(8px); }
+
+    .tag-pill {
+      position: absolute;
+      top: -12px;
+      left: 1.5rem;
+      background: var(--accent);
+      color: #fff;
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: .25rem .75rem;
+      border-radius: 999px;
+    }
+
+    blockquote {
+      font-size: 1.35rem;
+      line-height: 1.65;
+      font-weight: 400;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+    }
+
+    blockquote::before { content: '\201C'; color: var(--accent); font-size: 2rem; line-height: 0; vertical-align: -.4rem; margin-right: .2rem; }
+    blockquote::after  { content: '\201D'; color: var(--accent); font-size: 2rem; line-height: 0; vertical-align: -.4rem; margin-left: .2rem; }
+
+    .author {
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .author::before { content: '— '; }
+
+    .controls {
+      margin-top: 2rem;
+      display: flex;
+      gap: .75rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: .5rem 1.25rem;
+      font-size: .85rem;
+      cursor: pointer;
+      transition: border-color .2s, color .2s;
+    }
+
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+
+    #next-btn {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+    #next-btn:hover { background: color-mix(in srgb, var(--accent) 80%, #fff); }
+
+    .copy-hint {
+      margin-top: 2rem;
+      font-size: .75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .copy-hint code {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: .2rem .5rem;
+      font-family: monospace;
+      color: var(--accent2);
+    }
+
+    #copied {
+      display: none;
+      color: #6fdb8e;
+      font-size: .8rem;
+      margin-top: .5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>✨ Message of the Day</h1>
+
+  <div class="card" id="card">
+    <span class="tag-pill" id="tag">—</span>
+    <blockquote id="quote">Loading…</blockquote>
+    <div class="author" id="author"></div>
+  </div>
+
+  <div class="controls">
+    <button id="next-btn" onclick="next()">Next message</button>
+    <button onclick="copyText()">Copy</button>
+    <button onclick="filterTag('all')"  class="active" id="btn-all">All</button>
+    <button onclick="filterTag('funny')"      id="btn-funny">😄 Funny</button>
+    <button onclick="filterTag('tech')"       id="btn-tech">💻 Tech</button>
+    <button onclick="filterTag('motivation')" id="btn-motivation">🚀 Motivation</button>
+    <button onclick="filterTag('kindness')"   id="btn-kindness">💛 Kindness</button>
+    <button onclick="filterTag('wisdom')"     id="btn-wisdom">🦉 Wisdom</button>
+    <button onclick="filterTag('courage')"    id="btn-courage">🦁 Courage</button>
+  </div>
+
+  <div class="copy-hint">
+    Add to shell: <code>source /path/to/motd.sh</code>
+  </div>
+  <div id="copied">Copied to clipboard!</div>
+
+  <script>
+    let messages = [];
+    let filtered = [];
+    let idx = 0;
+    let currentTag = 'all';
+
+    async function load() {
+      const res = await fetch('messages.json');
+      const data = await res.json();
+      messages = data.messages;
+      applyFilter();
+      show();
+    }
+
+    function applyFilter() {
+      filtered = currentTag === 'all'
+        ? [...messages]
+        : messages.filter(m => m.tag === currentTag);
+      idx = Math.floor(Math.random() * filtered.length);
+    }
+
+    function show() {
+      const card = document.getElementById('card');
+      card.classList.add('fade');
+      setTimeout(() => {
+        const m = filtered[idx % filtered.length];
+        document.getElementById('quote').textContent = m.text;
+        document.getElementById('author').textContent = m.author;
+        document.getElementById('tag').textContent = m.tag;
+        card.classList.remove('fade');
+      }, 280);
+    }
+
+    function next() {
+      idx = (idx + 1) % filtered.length;
+      show();
+    }
+
+    function filterTag(tag) {
+      currentTag = tag;
+      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+      document.getElementById('btn-' + tag)?.classList.add('active');
+      applyFilter();
+      show();
+    }
+
+    function copyText() {
+      const m = filtered[idx % filtered.length];
+      navigator.clipboard.writeText(`"${m.text}" — ${m.author}`);
+      const hint = document.getElementById('copied');
+      hint.style.display = 'block';
+      setTimeout(() => hint.style.display = 'none', 2000);
+    }
+
+    load();
+  </script>
+</body>
+</html>
