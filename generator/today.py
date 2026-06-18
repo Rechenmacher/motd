@@ -186,11 +186,21 @@ def call_gemini(headlines: list[str]) -> dict:
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"maxOutputTokens": 256, "temperature": 0.9},
     }).encode()
-    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=15) as r:
-        data = json.loads(r.read())
-    raw = data["candidates"][0]["content"]["parts"][0]["text"]
-    return parse_json_response(raw)
+
+    for attempt in range(3):
+        try:
+            req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=15) as r:
+                data = json.loads(r.read())
+            raw = data["candidates"][0]["content"]["parts"][0]["text"]
+            return parse_json_response(raw)
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < 2:
+                wait = 30 * (attempt + 1)
+                print(f"  [gemini] rate limited, retrying in {wait}s…", file=sys.stderr)
+                time.sleep(wait)
+            else:
+                raise
 
 
 def call_groq(headlines: list[str]) -> dict:
