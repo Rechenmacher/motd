@@ -133,21 +133,6 @@ def import_quotable(pages: int) -> list[dict]:
 
 
 # ── github public datasets ─────────────────────────────────────────────────────
-GITHUB_DATASETS = [
-    # (description, url, parser_fn)
-    # Each parser receives the parsed JSON and yields (text, author) tuples.
-    (
-        "JamesFT/Database-Quotes-JSON (5400+ general)",
-        "https://raw.githubusercontent.com/JamesFT/Database-Quotes-JSON/master/quotes.json",
-        lambda d: [(q["quoteText"], q.get("quoteAuthor") or "Anonymous") for q in d],
-    ),
-    (
-        "akhiltak/inspirational-quotes (1600+ motivation)",
-        "https://raw.githubusercontent.com/akhiltak/inspirational-quotes/master/Quotes.csv",
-        None,  # handled separately — it's CSV
-    ),
-]
-
 def import_github_datasets() -> list[dict]:
     messages = []
 
