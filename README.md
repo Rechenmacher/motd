@@ -123,36 +123,55 @@ Model: `claude-haiku-4-5` — fast and cheap (~$0.0003 per generation, which at 
 
 ---
 
-## Full 40k message archive (local only)
+## Message library
 
-`messages.json` ships with ~4,000 balanced entries — the right size for GitHub Pages and browser demos. But the source datasets contain **40,000+ quotes**. To generate the full archive locally (gitignored, not committed):
+### What ships in the repo
+
+`messages.json` contains **4,104 balanced entries** — the right size for GitHub Pages, browser demos, and quick installs. Tags are capped at ~800 each so no single category dominates.
+
+| Tag | Count |
+|---|---|
+| motivation | ~808 |
+| wisdom | ~805 |
+| kindness | ~807 |
+| courage | ~803 |
+| funny | ~716 |
+| tech | ~165 |
+
+### Full 40k archive — GitHub Release
+
+The full **40,337-quote** archive is published as a release asset (8.7MB). It is not committed to the repo, but is permanently available to download:
 
 ```bash
-# one-time download — ~8.7MB, stored in data/ (gitignored)
-python3 scripts/import.py --github --no-existing \
-  --output data/messages-full.json
+# download the full archive into data/ (gitignored)
+curl -L -o data/messages-full.json \
+  https://github.com/Rechenmacher/motd/releases/download/v1.0.0/messages-full.json
 
 # run the server against it
 python3 server.py --messages data/messages-full.json
 ```
 
-The full set is rebuilt from two free public GitHub datasets in seconds — no reason to commit 8.7MB when you can regenerate it with one command.
+Release page: [github.com/Rechenmacher/motd/releases/tag/v1.0.0](https://github.com/Rechenmacher/motd/releases/tag/v1.0.0)
 
----
+Sources: [JamesFT/Database-Quotes-JSON](https://github.com/JamesFT/Database-Quotes-JSON) (5,421 quotes) + [alvations/Quotables](https://github.com/alvations/Quotables) (~39,000 quotes).
 
-## Bulk-import messages
-
-`scripts/import.py` pulls from quotable.io (free, no key, ~150 quotes/page) and fortune-mod text files:
+### Regenerate or extend the library locally
 
 ```bash
-# import 10 pages ≈ 1500 quotes from quotable.io, merge with existing
-python3 scripts/import.py --quotable 10
+# rebuild the full 40k archive from scratch
+python3 scripts/import.py --github --no-existing \
+  --output data/messages-full.json
+
+# rebuild balanced messages.json (4k entries, cap 800 per tag)
+python3 scripts/import.py --github --no-existing --limit-per-tag 800
 
 # import fortune-mod files (if installed)
 python3 scripts/import.py --fortune /usr/share/games/fortunes
 
-# both
-python3 scripts/import.py --quotable 5 --fortune /usr/share/games/fortunes
+# merge everything, cap per tag
+python3 scripts/import.py --github \
+  --fortune /usr/share/games/fortunes \
+  --limit-per-tag 800
 ```
 
 ---
