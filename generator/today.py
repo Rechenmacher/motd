@@ -181,7 +181,7 @@ def call_gemini(headlines: list[str]) -> dict:
     headline_block = "\n".join(f"- {h}" for h in headlines)
     prompt = f"{SYSTEM_PROMPT}\n\nToday's headlines:\n{headline_block}\n\nWrite the Message of the Day."
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
     payload = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"maxOutputTokens": 256, "temperature": 0.9},
