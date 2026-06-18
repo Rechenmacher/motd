@@ -125,10 +125,62 @@ def import_quotable(pages: int) -> list[dict]:
                 if msg:
                     messages.append(msg)
             print(f"  quotable page {page}: {len(data.get('results', []))} quotes")
-            time.sleep(0.3)  # be polite
+            time.sleep(0.3)
         except Exception as e:
             print(f"  quotable page {page}: failed ({e})", file=sys.stderr)
             break
+    return messages
+
+
+# ── github public datasets ─────────────────────────────────────────────────────
+GITHUB_DATASETS = [
+    # (description, url, parser_fn)
+    # Each parser receives the parsed JSON and yields (text, author) tuples.
+    (
+        "JamesFT/Database-Quotes-JSON (5400+ general)",
+        "https://raw.githubusercontent.com/JamesFT/Database-Quotes-JSON/master/quotes.json",
+        lambda d: [(q["quoteText"], q.get("quoteAuthor") or "Anonymous") for q in d],
+    ),
+    (
+        "akhiltak/inspirational-quotes (1600+ motivation)",
+        "https://raw.githubusercontent.com/akhiltak/inspirational-quotes/master/Quotes.csv",
+        None,  # handled separately — it's CSV
+    ),
+]
+
+def import_github_datasets() -> list[dict]:
+    messages = []
+
+    # Dataset 1: JamesFT JSON — 5400+ general quotes (windows-1252 encoded)
+    url = "https://raw.githubusercontent.com/JamesFT/Database-Quotes-JSON/master/quotes.json"
+    try:
+        with urllib.request.urlopen(url, timeout=15) as r:
+            raw = r.read().decode("windows-1252", errors="replace")
+        data = json.loads(raw)
+        for q in data:
+            msg = normalize(q.get("quoteText", ""), q.get("quoteAuthor") or "Anonymous")
+            if msg:
+                messages.append(msg)
+        print(f"  github/JamesFT: {len(data)} quotes")
+    except Exception as e:
+        print(f"  github/JamesFT: failed ({e})", file=sys.stderr)
+
+    # Dataset 2: manassaloi/goodreads-quotes — programming & wisdom
+    url2 = "https://raw.githubusercontent.com/alvations/Quotables/master/author-quote.txt"
+    try:
+        with urllib.request.urlopen(url2, timeout=15) as r:
+            lines = r.read().decode(errors="replace").splitlines()
+        for line in lines:
+            parts = line.split("\t", 1)
+            if len(parts) == 2:
+                author, text = parts[0].strip(), parts[1].strip()
+                msg = normalize(text, author)
+                if msg:
+                    messages.append(msg)
+        print(f"  github/alvations Quotables: {len(lines)} lines processed")
+    except Exception as e:
+        print(f"  github/alvations: failed ({e})", file=sys.stderr)
+
     return messages
 
 
@@ -156,12 +208,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--fortune",   help="Path to fortune-mod data directory")
     parser.add_argument("--quotable",  type=int, default=0, metavar="PAGES",
-                        help="Pages to fetch from quotable.io (150/page)")
+                        help="Pages to fetch from quotable.io (150/page, may be offline)")
+    parser.add_argument("--github", action="store_true",
+                        help="Fetch from free public GitHub quote datasets (~6000+ quotes)")
     parser.add_argument("--existing",  default=str(OUTPUT),
                         help="Existing messages.json to merge (default: messages.json)")
     parser.add_argument("--output",    default=str(OUTPUT))
     parser.add_argument("--no-existing", action="store_true",
                         help="Don't merge existing messages")
+    parser.add_argument("--limit-per-tag", type=int, default=0, metavar="N",
+                        help="Cap each tag at N entries to keep the file balanced")
     args = parser.parse_args()
 
     messages = []
@@ -181,7 +237,27 @@ def main():
         print(f"  quotable total: {len(batch)}")
         messages.extend(batch)
 
+    if args.github:
+        batch = import_github_datasets()
+        print(f"  github datasets total: {len(batch)}")
+        messages.extend(batch)
+
     messages = deduplicate(messages)
+
+    if args.limit_per_tag:
+        from collections import defaultdict
+        import random as _random
+        buckets = defaultdict(list)
+        for m in messages:
+            buckets[m["tag"]].append(m)
+        messages = []
+        for tag, bucket in buckets.items():
+            _random.shuffle(bucket)
+            chosen = bucket[:args.limit_per_tag]
+            messages.extend(chosen)
+            print(f"  tag '{tag}': {len(bucket)} → kept {len(chosen)}")
+        _random.shuffle(messages)
+
     print(f"\n  Total after dedup: {len(messages)} messages")
 
     out = Path(args.output)
