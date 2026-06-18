@@ -1,0 +1,4 @@
+# local full datasets — too large for GitHub Pages, regenerate with scripts/import.py
+data/
+packages/python/motd/__pycache__/
+*.pyc

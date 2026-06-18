@@ -123,6 +123,23 @@ Model: `claude-haiku-4-5` — fast and cheap (~$0.0003 per generation, which at 
 
 ---
 
+## Full 40k message archive (local only)
+
+`messages.json` ships with ~4,000 balanced entries — the right size for GitHub Pages and browser demos. But the source datasets contain **40,000+ quotes**. To generate the full archive locally (gitignored, not committed):
+
+```bash
+# one-time download — ~8.7MB, stored in data/ (gitignored)
+python3 scripts/import.py --github --no-existing \
+  --output data/messages-full.json
+
+# run the server against it
+python3 server.py --messages data/messages-full.json
+```
+
+The full set is rebuilt from two free public GitHub datasets in seconds — no reason to commit 8.7MB when you can regenerate it with one command.
+
+---
+
 ## Bulk-import messages
 
 `scripts/import.py` pulls from quotable.io (free, no key, ~150 quotes/page) and fortune-mod text files:
