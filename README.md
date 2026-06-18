@@ -98,28 +98,77 @@ All via environment variables — no config file needed:
 
 ---
 
-## AI-powered message of the day
+## Dynamic daily message — works on GitHub Pages, free options included
 
-`generator/today.py` fetches today's top headlines from free RSS feeds (BBC World, HackerNews, Reuters — no API keys) and asks Claude to write a funny, warm MOTD inspired by what's actually happening right now. The result is cached for 12 hours.
+The site shows a **"Today's message"** card that updates every day via GitHub Actions. No server required — the workflow generates `today.json` and commits it back to the repo, then GitHub Pages serves it as a static file.
+
+### How it works
+
+```
+GitHub Actions (daily cron)
+  → fetch RSS headlines (BBC, HN, Reuters — no key needed)
+  → call AI provider (your choice, several are free)
+  → write today.json
+  → commit & push → GitHub Pages serves it instantly
+```
+
+### Setup: add one secret to your repo
+
+Go to **Settings → Secrets and variables → Actions → New repository secret** and add whichever key you have:
+
+| Secret name | Provider | Free? | Sign up |
+|---|---|---|---|
+| `GROQ_API_KEY` | Groq (Llama 3) | **Yes — generous free tier** | [console.groq.com](https://console.groq.com) |
+| `GEMINI_API_KEY` | Google Gemini | **Yes — 1500 req/day free** | [aistudio.google.com](https://aistudio.google.com) |
+| `ANTHROPIC_API_KEY` | Claude | Paid (best quality) | [console.anthropic.com](https://console.anthropic.com) |
+
+No secret set? The workflow still runs — it just picks a random message from the curated library instead. Nothing breaks.
+
+### Trigger the first run manually
+
+After adding a secret, go to **Actions → Generate daily MOTD → Run workflow**.
+The result is committed to `today.json` and live on your GitHub Pages site within seconds.
+
+### Run locally with any provider
 
 ```bash
-# standalone — print today's AI-generated message
-pip install anthropic
-export ANTHROPIC_API_KEY=sk-...
-python3 generator/today.py
+# Groq (free)
+GROQ_API_KEY=gsk_... python3 generator/today.py --force
 
-# dry run — see what headlines were fetched, no Claude call
-python3 generator/today.py --dry-run
+# Gemini (free)
+GEMINI_API_KEY=... python3 generator/today.py --force
 
-# force regeneration, ignore cache
+# Anthropic Claude (paid)
+ANTHROPIC_API_KEY=sk-... python3 generator/today.py --force
+
+# Ollama (fully local, no key needed)
+OLLAMA_URL=http://localhost:11434 python3 generator/today.py --force
+
+# No AI — picks a random curated message
 python3 generator/today.py --force
 
-# via server — GET /motd/today (requires ANTHROPIC_API_KEY at server start)
-ANTHROPIC_API_KEY=sk-... python3 server.py
+# Dry run — show today's headlines without calling any AI
+python3 generator/today.py --dry-run
+
+# Write output to a specific file (used by the GitHub Actions workflow)
+GROQ_API_KEY=... python3 generator/today.py --force --output today.json
+```
+
+Provider is auto-detected from whichever env var is set. Override with `MOTD_AI_PROVIDER=gemini`.
+
+---
+
+## AI-powered message of the day (self-hosted server)
+
+When self-hosting `server.py`, the `GET /motd/today` endpoint calls the generator on demand and caches the result for 12 hours:
+
+```bash
+# with any provider
+GROQ_API_KEY=gsk_... python3 server.py
 curl http://localhost:8000/motd/today
 ```
 
-Model: `claude-haiku-4-5` — fast and cheap (~$0.0003 per generation, which at 2× per day is under $0.25/year).
+Claude Haiku cost if using Anthropic: ~$0.0003 per generation, under $0.25/year at 2× per day.
 
 ---
 

@@ -325,6 +325,42 @@
     }
     footer a { color: var(--accent); text-decoration: none; }
 
+    /* ── today card ── */
+    .today-section {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 0 1.5rem 2rem;
+    }
+    .today-card {
+      background: var(--card);
+      border: 1px solid rgba(124,106,247,.35);
+      border-radius: var(--r);
+      padding: 2rem 2rem 1.5rem;
+      position: relative;
+    }
+    .today-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.25rem; flex-wrap: wrap; gap: .5rem;
+    }
+    .today-label {
+      font-size: .72rem; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--accent);
+    }
+    .today-badge {
+      font-size: .7rem; color: var(--muted);
+      border: 1px solid var(--border2);
+      border-radius: 999px; padding: .2rem .65rem;
+    }
+    .today-badge.ai { border-color: rgba(124,106,247,.4); color: var(--accent); }
+    .today-text {
+      font-size: 1.2rem; line-height: 1.65; color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .today-text::before { content: '\201C'; color: var(--accent); font-size: 1.6rem; line-height: 0; vertical-align: -.3rem; margin-right: .1rem; }
+    .today-text::after  { content: '\201D'; color: var(--accent); font-size: 1.6rem; line-height: 0; vertical-align: -.3rem; margin-left:  .1rem; }
+    .today-author { color: var(--muted); font-size: .88rem; }
+    .today-author::before { content: '— '; }
+
     /* ── utilities ── */
     .fade-divider {
       height: 1px;
@@ -364,6 +400,18 @@
   <div class="hero-actions">
     <a href="#demo" class="btn btn-primary">Try it live ↓</a>
     <a href="https://github.com/Rechenmacher/motd" class="btn btn-outline" target="_blank" rel="noopener">View on GitHub</a>
+  </div>
+</section>
+
+<!-- today's AI message -->
+<section class="today-section">
+  <div class="today-card" id="today-card">
+    <div class="today-header">
+      <span class="today-label">Today's message</span>
+      <span class="today-badge" id="today-badge">loading…</span>
+    </div>
+    <p class="today-text" id="today-text">…</p>
+    <p class="today-author" id="today-author"></p>
   </div>
 </section>
 
@@ -556,6 +604,26 @@ console.log(
 <script>
   let messages = [], filtered = [], idx = 0, currentTag = 'all';
 
+  async function loadToday() {
+    const textEl   = document.getElementById('today-text');
+    const authorEl = document.getElementById('today-author');
+    const badgeEl  = document.getElementById('today-badge');
+    try {
+      const res = await fetch('today.json');
+      if (!res.ok) throw new Error('no today.json');
+      const d = await res.json();
+      textEl.textContent   = d.text;
+      authorEl.textContent = d.author;
+      const isAI = (d.source || '').startsWith('ai-');
+      const provider = isAI ? d.source.replace('ai-', '') : null;
+      badgeEl.textContent  = isAI ? `AI-generated · ${provider} · updated daily` : 'Curated · updated daily';
+      if (isAI) badgeEl.classList.add('ai');
+    } catch(e) {
+      // today.json missing or stale — pick a random message once messages load
+      document.getElementById('today-card')._useFallback = true;
+    }
+  }
+
   async function load() {
     try {
       const res = await fetch('messages.json');
@@ -570,6 +638,13 @@ console.log(
     }
     document.getElementById('msg-count').textContent = messages.length;
     document.getElementById('s-count').textContent = messages.length + '+';
+    // fill today card fallback if today.json failed
+    if (document.getElementById('today-card')._useFallback && messages.length) {
+      const m = messages[Math.floor(Math.random() * messages.length)];
+      document.getElementById('today-text').textContent   = m.text;
+      document.getElementById('today-author').textContent = m.author;
+      document.getElementById('today-badge').textContent  = 'Curated';
+    }
     applyFilter();
     show();
   }
@@ -623,6 +698,7 @@ console.log(
     });
   }
 
+  loadToday();
   load();
 </script>
 </body>

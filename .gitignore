@@ -2,3 +2,6 @@
 data/
 packages/python/motd/__pycache__/
 *.pyc
+
+# generator cache (local only — today.json in repo root is the committed version)
+generator/cache.json
